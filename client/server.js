@@ -3,13 +3,10 @@ const http = require("http");
 // Configuration
 const PORT = 3000;
 // In production, this points to your deployed Fly.io proxy base URL (e.g., https://voxon.fly.dev)
-const VOXON_BASE_URL =
-  process.env.VOXON_URL ||
-  process.env.VOXON_PROXY_URL ||
-  "http://localhost:4000";
+const VOXON_BASE_URL = process.env.VOXON_URL || "http://localhost:4000";
 
-// Clean up the URL just in case it contains the old /v0/init path
-const baseUrl = VOXON_BASE_URL.replace(/\/v0\/init\/?$/, "");
+// Clean up the URL just in case it contains a trailing slash
+const baseUrl = VOXON_BASE_URL.replace(/\/?$/, "");
 const VOXON_INIT_URL = `${baseUrl}/v0/init`;
 const VOXON_MASTER_KEY =
   process.env.VOXON_MASTER_API_KEY || "default_local_secret";
