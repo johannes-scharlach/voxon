@@ -12,7 +12,12 @@ defmodule ProxyWeb.InitController do
       ["Bearer " <> ^master_key] ->
         # Authorized! Generate the short-lived client token
         token = Phoenix.Token.sign(ProxyWeb.Endpoint, @salt, %{authenticated: true})
-        json(conn, %{token: token})
+
+        # Determine the WebSocket URL using the application's configured Endpoint URL
+        base_url = ProxyWeb.Endpoint.url()
+        websocket_url = String.replace(base_url, ~r/^http/, "ws") <> "/stream/websocket"
+
+        json(conn, %{token: token, websocket_url: websocket_url})
 
       _ ->
         # Unauthorized

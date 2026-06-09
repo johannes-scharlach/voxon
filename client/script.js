@@ -25,13 +25,12 @@ micBtn.addEventListener("click", async () => {
     );
     if (!tokenResponse.ok) throw new Error("Backend authentication failed");
 
-    const { token } = await tokenResponse.json();
+    const { token, websocket_url } = await tokenResponse.json();
 
     statusText.innerText = "Connecting to secure voxon stream...";
 
-    // 2. Connect the WebSocket directly to Voxon using the token
-    // (Change localhost:4000 to your fly.dev URL when deploying)
-    ws = new WebSocket(`ws://localhost:4000/stream/websocket?token=${token}`);
+    // 2. Connect the WebSocket directly to Voxon using the provided URL and token
+    ws = new WebSocket(`${websocket_url}?token=${token}`);
 
     ws.onopen = async () => {
       statusText.innerText = "Connected! Listening...";
