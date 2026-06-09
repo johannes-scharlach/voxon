@@ -11,13 +11,17 @@ defmodule ProxyWeb.VoxonSocket do
   end
 
   def init(state) do
-    # Pull the hardcoded token from your environment
     api_key = System.get_env("MISTRAL_API_KEY") || "mock_key_for_now"
 
-    # Spin up the upstream link to Mistral, passing our own PID
-    {:ok, upstream_pid} = MistralClient.start_link(self(), api_key)
+    case MistralClient.start_link(self(), api_key) do
+      {:ok, upstream_pid} ->
+        {:ok, Map.put(state, :upstream, upstream_pid)}
 
-    {:ok, Map.put(state, :upstream, upstream_pid)}
+      {:error, reason} ->
+        require Logger
+        Logger.error("Failed to connect upstream: #{inspect(reason)}")
+        {:stop, :normal, state}
+    end
   end
 
   # Handle raw audio frames coming FROM the browser microphone
