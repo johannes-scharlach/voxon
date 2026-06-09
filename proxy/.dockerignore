@@ -1,0 +1,12 @@
+_build/
+deps/
+.git/
+.github/
+.vscode/
+test/
+client/
+scratch.exs
+AGENTS.md
+README.md
+mix.lock
+fly.toml

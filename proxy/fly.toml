@@ -1,0 +1,35 @@
+app = "voxon"
+primary_region = "fra"
+
+kill_signal = "SIGTERM"
+kill_timeout = 2100 # Gives voxon 35 minutes to gracefully drain WebSocket connections on redeployment
+
+[experimental]
+  auto_rollback = true
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "4000"
+  PHX_SERVER = "true"
+  PHX_HOST = "voxon.fly.dev"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections" # Track total active, stateful WebSockets instead of HTTP requests
+    hard_limit = 15000
+    soft_limit = 10000
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
