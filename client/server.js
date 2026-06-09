@@ -1,62 +1,58 @@
-const { WebSocketServer, WebSocket } = require('ws');
+const http = require('http');
 
-const port = 8080;
-const wss = new WebSocketServer({ port });
+// Configuration
+const PORT = 3000;
+// In production, this points to your deployed Fly.io proxy (e.g., https://voxon.fly.dev/v0/init)
+const VOXON_URL = process.env.VOXON_PROXY_URL || 'http://localhost:4000/v0/init'; 
+const VOXON_MASTER_KEY = process.env.VOXON_MASTER_API_KEY || 'default_local_secret';
 
-// Read Mistral API Key from environment variable
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const server = http.createServer((req, res) => {
+    // Enable CORS for your local frontend file testing
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-if (!MISTRAL_API_KEY) {
-    console.error("MISTRAL_API_KEY environment variable is not set!");
-    process.exit(1);
-}
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
-console.log(`Node.js WebSocket proxy running on ws://localhost:${port}`);
+    // Secure endpoint for the browser client to hit
+    if (req.method === 'POST' && req.url === '/api/session-init') {
+        
+        // TODO: This is where your customer would run their own auth check:
+        // if (!req.headers.session_cookie) { return res.writeHead(401); }
 
-wss.on('connection', function connection(clientWs) {
-    console.log("Client connected. Opening upstream connection to Mistral...");
+        // Secure Server-to-Server call to the Voxon Proxy
+        const proxyReq = http.request(VOXON_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${VOXON_MASTER_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        }, (proxyRes) => {
+            let data = '';
+            proxyRes.on('data', chunk => data += chunk);
+            proxyRes.on('end', () => {
+                res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+                res.end(data);
+            });
+        });
 
-    const url = "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602";
-    const mistralWs = new WebSocket(url, {
-        headers: {
-            "Authorization": `Bearer ${MISTRAL_API_KEY}`,
-            "Content-Type": "application/json"
-        }
-    });
+        proxyReq.on('error', (err) => {
+            console.error("Failed to connect to Voxon:", err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: "Voxon Proxy Unreachable" }));
+        });
 
-    mistralWs.on('open', () => {
-        console.log("Mistral upstream connected!");
-    });
+        proxyReq.end();
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
 
-    mistralWs.on('message', (data, isBinary) => {
-        if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.send(data, { binary: isBinary });
-        }
-    });
-
-    mistralWs.on('close', (code, reason) => {
-        console.log(`Mistral disconnected: ${code} - ${reason}`);
-        if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.close(code, reason);
-        }
-    });
-
-    mistralWs.on('error', (error) => {
-        console.error("Mistral WebSocket Error:", error);
-    });
-
-    clientWs.on('message', (data, isBinary) => {
-        if (mistralWs.readyState === WebSocket.OPEN) {
-            mistralWs.send(data, { binary: isBinary });
-        } else {
-            console.log("Warning: Mistral not ready yet. Dropping client frame.");
-        }
-    });
-
-    clientWs.on('close', () => {
-        console.log("Client disconnected.");
-        if (mistralWs.readyState === WebSocket.OPEN) {
-            mistralWs.close();
-        }
-    });
+server.listen(PORT, () => {
+    console.log(`Node backend running at http://localhost:${PORT}`);
 });

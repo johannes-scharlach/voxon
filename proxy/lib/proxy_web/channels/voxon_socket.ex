@@ -6,8 +6,24 @@ defmodule ProxyWeb.VoxonSocket do
   # Automatically accept any local connection for Slice 1
   def child_spec(_opts), do: :ignore
 
-  def connect(transport_info) do
-    {:ok, transport_info}
+  @salt "voxon-ephemeral-session-salt"
+
+  def connect(%{params: %{"token" => token}} = transport_info) do
+    case Phoenix.Token.verify(ProxyWeb.Endpoint, @salt, token, max_age: 60) do
+      {:ok, _data} ->
+        {:ok, transport_info}
+
+      {:error, reason} ->
+        require Logger
+        Logger.warning("WebSocket connection rejected: #{inspect(reason)}")
+        :error
+    end
+  end
+
+  def connect(_transport_info) do
+    require Logger
+    Logger.warning("WebSocket connection rejected: missing token")
+    :error
   end
 
   def init(state) do

@@ -15,40 +15,54 @@ micBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (server === "node") {
-    statusText.innerText = "Connecting to Node proxy...";
-    ws = new WebSocket("ws://localhost:8080");
-  } else {
-    statusText.innerText = "Connecting to Elixir...";
-    ws = new WebSocket(`ws://localhost:4000/stream/websocket`);
+  try {
+    statusText.innerText = "Authenticating with app backend...";
+
+    // 1. Hit your own Node.js server, NOT the proxy
+    const tokenResponse = await fetch(
+      "http://localhost:3000/api/session-init",
+      { method: "POST" },
+    );
+    if (!tokenResponse.ok) throw new Error("Backend authentication failed");
+
+    const { token } = await tokenResponse.json();
+
+    statusText.innerText = "Connecting to secure voxon stream...";
+
+    // 2. Connect the WebSocket directly to Voxon using the token
+    // (Change localhost:4000 to your fly.dev URL when deploying)
+    ws = new WebSocket(`ws://localhost:4000/stream/websocket?token=${token}`);
+
+    ws.onopen = async () => {
+      statusText.innerText = "Connected! Listening...";
+      micBtn.innerText = "Stop Streaming";
+
+      await startAudioRecording();
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("Mistral Event:", data);
+
+      // Mistral uses transcription.text.delta or transcription.segment
+      if (data.type === "transcription.text.delta") {
+        transcriptDiv.innerText += data.delta?.text || data.text || "";
+      } else if (data.type === "transcription.segment") {
+        // Some models push full segments instead of deltas
+        transcriptDiv.innerText +=
+          "\n" + (data.segment?.text || data.text || "");
+      } else if (data.type === "error") {
+        console.error("Mistral returned an error:", data);
+      }
+    };
+
+    ws.onclose = () => {
+      stopStreaming();
+    };
+  } catch (err) {
+    console.error(err);
+    statusText.innerText = `Error: ${err.message}`;
   }
-
-  ws.onopen = async () => {
-    statusText.innerText = "Connected. Initializing session...";
-    micBtn.innerText = "Stop Streaming";
-
-    // We do not need to send session.create; Mistral will send session.created to us.
-    await startAudioRecording();
-  };
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log("Mistral Event:", data);
-
-    // Mistral uses transcription.text.delta or transcription.segment
-    if (data.type === "transcription.text.delta") {
-      transcriptDiv.innerText += data.delta?.text || data.text || "";
-    } else if (data.type === "transcription.segment") {
-      // Some models push full segments instead of deltas
-      transcriptDiv.innerText += "\n" + (data.segment?.text || data.text || "");
-    } else if (data.type === "error") {
-      console.error("Mistral returned an error:", data);
-    }
-  };
-
-  ws.onclose = () => {
-    stopStreaming();
-  };
 });
 
 async function startAudioRecording() {
