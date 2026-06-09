@@ -8,5 +8,4 @@ client/
 scratch.exs
 AGENTS.md
 README.md
-mix.lock
 fly.toml
