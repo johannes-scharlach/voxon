@@ -1,6 +1,10 @@
 defmodule ProxyWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :proxy
 
+  # Intentionally permissive: the standalone client may connect from any origin.
+  # Configure `check_origin` to a whitelist before deploying to production.
+  socket "/stream", ProxyWeb.VoxonSocket, websocket: [check_origin: false]
+
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
@@ -44,5 +48,6 @@ defmodule ProxyWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  plug Corsica, origins: "*", allow_headers: :all
   plug ProxyWeb.Router
 end

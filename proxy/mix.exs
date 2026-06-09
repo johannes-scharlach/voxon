@@ -5,11 +5,15 @@ defmodule Proxy.MixProject do
     [
       app: :proxy,
       version: "0.1.0",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      dialyzer: [
+        plt_add_apps: [:ex_unit],
+        ignore_warnings: ".dialyzer_ignore.exs"
+      ],
       listeners: [Phoenix.CodeReloader]
     ]
   end
@@ -45,7 +49,12 @@ defmodule Proxy.MixProject do
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:websockex, "~> 0.5.1"},
+      {:corsica, "~> 2.1"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -58,7 +67,15 @@ defmodule Proxy.MixProject do
   defp aliases do
     [
       setup: ["deps.get"],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "sobelow --exit",
+        "credo --strict",
+        "dialyzer",
+        "test"
+      ]
     ]
   end
 end

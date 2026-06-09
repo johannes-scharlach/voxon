@@ -1,0 +1,20 @@
+# Environment / secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Node modules
+**/node_modules
