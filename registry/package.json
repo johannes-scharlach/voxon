@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}

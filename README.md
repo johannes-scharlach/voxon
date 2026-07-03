@@ -62,6 +62,34 @@ npx serve .             # or open index.html any other way
 
 Click the mic button and talk.
 
+### React client SDK
+
+`packages/voice-input/` contains `@voxon/voice-input` — React hooks that handle the full mic-button-to-transcript UX:
+
+- `useVoiceRecorder` — AudioWorklet capture, Mistral realtime protocol, two-phase stop with `input_audio.flush` + `input_audio.end`, waits for `transcription.done` before firing `onComplete`.
+- `PromptInputProvider` / `usePromptInputController` — text-input state lifted outside your input component, so live transcript deltas append cleanly to existing text.
+- `createVoxonSession` — default session factory that mints a token via your backend's `/v0/init` proxy.
+- `appendTranscript` — utility that appends a transcript to existing text with smart spacing.
+- `WORKLET_SOURCE` — the PCM capture AudioWorklet processor source as a string (exported for CSP-compatible hosting).
+
+```sh
+cd packages/voice-input
+npm install
+npm run build
+```
+
+See [`packages/voice-input/`](packages/voice-input/) for full API docs.
+
+### shadcn/ui registry components
+
+`registry/` contains copy-paste UI components for the hooks — mic button, transcript field, send button. Add them with the shadcn CLI:
+
+```sh
+npx shadcn@latest add https://raw.githubusercontent.com/johannes/voxon/main/registry.json
+```
+
+See [`registry/README.md`](registry/README.md) for the full example.
+
 ## API
 
 ### `POST /v0/init`
@@ -74,9 +102,27 @@ Server-to-server only — call this from your backend, never from the browser.
 
 ### `wss://…/stream/websocket?token=<token>`
 
-The streaming socket. Frames are currently passed through to Mistral's realtime schema unchanged — send [`input_audio.append`](https://docs.mistral.ai/) messages with base64 PCM and receive `transcription.text.delta` / `transcription.segment` events back. (Schema normalization across providers is roadmap, not reality — see below.)
+The streaming socket. Frames are passed through to Mistral's realtime schema unchanged. Voxon does not normalize the protocol — it is a transparent relay.
 
-One voxon-specific event exists today:
+#### Client → Server (you send)
+
+| Message type | Purpose |
+|---|---|
+| `{"type":"input_audio.append","audio":"<base64 PCM>"}` | Stream an audio chunk. Base64-encoded `pcm_s16le` at the sample rate configured in the session (default 16 kHz). |
+| `{"type":"input_audio.flush"}` | Flush the internal audio buffer. Send this when the user stops speaking to trigger processing of any buffered audio. |
+| `{"type":"input_audio.end"}` | Signal end-of-stream. The server will finalize the transcription and emit `transcription.done`. Send this after `input_audio.flush`. |
+
+#### Server → Client (you receive)
+
+| Event type | Payload | Purpose |
+|---|---|---|
+| `session.created` | `{session: {request_id, model, audio_format, target_streaming_delay_ms}}` | Session handshake — emitted once on connect. |
+| `transcription.text.delta` | `{text: "..."}` | Incremental transcript text as the user speaks. Accumulate these for the live transcript. |
+| `transcription.segment` | `{segment: {text: "..."}}` | A completed segment (e.g. after a pause). Append with a newline separator. |
+| `transcription.done` | `{text: "...", language, segments, usage, ...}` | **Authoritative final transcript.** The `text` field is the complete transcript — prefer it over accumulated deltas. Emitted after `input_audio.end`. |
+| `error` | `{error: {message: "..."}}` | Transcription error. |
+
+One voxon-specific event exists beyond the Mistral passthrough:
 
 ```json
 {"type": "session.hard_wall", "message": "Session reached its maximum duration. Reconnect to continue."}
@@ -112,7 +158,6 @@ Honesty section. voxon is young:
 
 - **One provider** (Mistral Voxtral realtime). The client speaks Mistral's message schema directly; there is no cross-provider abstraction yet.
 - **One master key** — single-tenant self-hosting, no per-app key management.
-- The demo client uses `ScriptProcessorNode` (deprecated); an `AudioWorklet`-based client SDK is planned.
 - No usage metering or dashboards.
 
 ## Roadmap
@@ -120,9 +165,8 @@ Honesty section. voxon is young:
 See [VISION.md](VISION.md) for the long-term picture. Near-term, in rough order:
 
 1. **Provider normalization** — one client-side schema, adapters for OpenAI Realtime, Gemini Live, and Mistral upstream.
-2. **Client SDK** — an npm package with `AudioWorklet`-based capture/conversion, so the mic button is one function call.
-3. **Server-side format rejection** — refuse WebM/Ogg containers explicitly instead of forwarding garbage upstream.
-4. Managed cloud offering (multi-region, dashboards, usage aggregation).
+2. **Server-side format rejection** — refuse WebM/Ogg containers explicitly instead of forwarding garbage upstream.
+3. Managed cloud offering (multi-region, dashboards, usage aggregation).
 
 Contributions and issue reports are very welcome.
 

@@ -1,0 +1,45 @@
+{
+  "name": "@voxon/voice-input",
+  "version": "0.1.0",
+  "description": "React hooks for real-time voice transcription with Voxon + Mistral Voxtral. Streaming capture, two-phase stop, and a prompt input controller for the live-transcript UX.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@types/react": "^19.2.17",
+    "react": "^19.2.7"
+  },
+  "keywords": [
+    "voxon",
+    "mistral",
+    "voxtral",
+    "voice",
+    "transcription",
+    "speech-to-text",
+    "realtime",
+    "react",
+    "audio-worklet"
+  ],
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "^6.0.3",
+    "vitest": "^4"
+  }
+}

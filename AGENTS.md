@@ -5,11 +5,36 @@ Open-source WebSocket proxy in Elixir/Phoenix that normalizes real-time AI trans
 ## Repository layout
 
 ```
-client/          Standalone browser client (vanilla HTML/JS) — mic capture, PCM conversion, WebSocket send
-proxy/           Elixir/Phoenix app (:proxy) — the proxy engine
+client/              Standalone browser client (vanilla HTML/JS) — mic capture, PCM conversion, WebSocket send
+packages/voice-input/ @voxon/voice-input — React hooks (useVoiceRecorder + PromptInputProvider) for the mic-button-to-transcript UX
+registry/            shadcn-style copy-paste UI components (voice-mic-button, voice-transcript-field, voice-send-button)
+proxy/               Elixir/Phoenix app (:proxy) — the proxy engine
 ```
 
-The `client/` and `proxy/` directories are independent; the client is not served by Phoenix.
+The `client/`, `packages/voice-input/`, `registry/`, and `proxy/` directories are independent; the client is not served by Phoenix.
+
+### `packages/voice-input/`
+
+React hooks published as `@voxon/voice-input` on npm. Zero runtime deps; React ≥ 18 as a peer dep.
+
+- `src/use-voice-recorder.ts` — AudioWorklet capture, Mistral realtime protocol (input_audio.append/flush/end → transcription.done), two-phase stop.
+- `src/prompt-input-controller.tsx` — `PromptInputProvider` + `usePromptInputController` (text-input state only).
+- `src/create-voxon-session.ts` — default `CreateSession` factory that hits your backend's session-init endpoint.
+- `src/append-transcript.ts` — smart spacing utility.
+- `src/worklet-source.ts` — PCM capture AudioWorklet processor source as a string.
+- `test/` — vitest tests for `appendTranscript`.
+
+Build: `npm run build` (tsc → `dist/`). Typecheck: `npm run typecheck`. Test: `npm run test`.
+
+### `registry/`
+
+shadcn/ui-style copy-paste components. Not part of the npm package — consumers add them via `npx shadcn@latest add`. Each component uses `cn()` from `@/lib/utils` (shadcn convention) and is fully restyleable.
+
+- `voice-mic-button.tsx` — idle / recording / finalizing states.
+- `voice-transcript-field.tsx` — textarea, read-only while recording.
+- `voice-send-button.tsx` — stop-and-send, finalizing spinner, disabled-when-empty.
+- `registry.json` (at repo root) — shadcn CLI manifest.
+- `_placeholder.ts` — stub `cn()` so the registry's tsconfig resolves without a full shadcn project.
 
 ## Commands (run from `proxy/`)
 

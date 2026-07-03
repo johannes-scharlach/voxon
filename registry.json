@@ -1,0 +1,55 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "voxon",
+  "homepage": "https://github.com/johannes/voxon",
+  "items": [
+    {
+      "name": "voice-mic-button",
+      "type": "registry:ui",
+      "title": "Voice Mic Button",
+      "description": "Mic button with idle / recording / finalizing states. Wire to useVoiceRecorder's output.",
+      "dependencies": ["@voxon/voice-input"],
+      "registryDependencies": ["utils"],
+      "files": [
+        {
+          "path": "registry/voice-mic-button.tsx",
+          "type": "registry:ui",
+          "target": "@ui/voice-mic-button.tsx"
+        }
+      ],
+      "docs": "A mic button with three visual states:\n\n- **Idle**: muted icon, hover highlight.\n- **Recording**: pulsing primary background with a ring.\n- **Finalizing**: disabled, slightly dimmed.\n\nWire it to `useVoiceRecorder` from `@voxon/voice-input`:\n\n```tsx\nimport { useVoiceRecorder, createVoxonSession } from \"@voxon/voice-input\";\nimport { VoiceMicButton } from \"@/components/ui/voice-mic-button\";\n\nconst recorder = useVoiceRecorder({\n  createSession: createVoxonSession({ endpoint: \"/api/voice-init\" }),\n  onComplete: (text) => console.log(text),\n});\n\n<VoiceMicButton\n  isRecording={recorder.isRecording}\n  isFinalizing={recorder.isFinalizing}\n  onToggle={recorder.toggle}\n/>\n```\n\nThe default mic icon is an inline SVG. Override it by passing `children`."
+    },
+    {
+      "name": "voice-transcript-field",
+      "type": "registry:ui",
+      "title": "Voice Transcript Field",
+      "description": "Textarea for the live transcript. Read-only while recording.",
+      "dependencies": ["@voxon/voice-input"],
+      "registryDependencies": ["utils"],
+      "files": [
+        {
+          "path": "registry/voice-transcript-field.tsx",
+          "type": "registry:ui",
+          "target": "@ui/voice-transcript-field.tsx"
+        }
+      ],
+      "docs": "A textarea that displays the live transcript from `useVoiceRecorder`. Set `readOnly` to `recorder.isRecording` so the user can't accidentally edit mid-stream:\n\n```tsx\nimport { usePromptInputController, appendTranscript } from \"@voxon/voice-input\";\nimport { VoiceTranscriptField } from \"@/components/ui/voice-transcript-field\";\n\nconst { textInput } = usePromptInputController();\n\n<VoiceTranscriptField\n  value={textInput.value}\n  onChange={textInput.setInput}\n  readOnly={recorder.isRecording}\n/>\n```\n\nStyle with `className` — it's a plain textarea with no opinionated padding or border."
+    },
+    {
+      "name": "voice-send-button",
+      "type": "registry:ui",
+      "title": "Voice Send Button",
+      "description": "Send button that handles stop-and-send while recording, spinner while finalizing, and disabled-when-empty.",
+      "dependencies": ["@voxon/voice-input"],
+      "registryDependencies": ["utils"],
+      "files": [
+        {
+          "path": "registry/voice-send-button.tsx",
+          "type": "registry:ui",
+          "target": "@ui/voice-send-button.tsx"
+        }
+      ],
+      "docs": "A send button that handles the three states of the voice input flow:\n\n- **While recording**: clickable — triggers stop-and-send (call `recorder.stop()` or set a `sendPending` flag).\n- **While finalizing**: shows a spinner, disabled.\n- **Idle**: standard send, disabled when input is empty.\n\n```tsx\nimport { VoiceSendButton } from \"@/components/ui/voice-send-button\";\n\n<VoiceSendButton\n  isRecording={recorder.isRecording}\n  isFinalizing={recorder.isFinalizing}\n  isEmpty={!textInput.value.trim()}\n  onSubmit={() => handleSubmit()}\n/>\n```\n\nThe default send icon is an inline SVG. Override it by passing `children`."
+    }
+  ]
+}
