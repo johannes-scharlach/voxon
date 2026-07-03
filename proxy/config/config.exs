@@ -10,6 +10,10 @@ import Config
 config :proxy,
   generators: [timestamp_type: :utc_datetime]
 
+# Hard cap on WebSocket session length. The proxy notifies the client and
+# closes the socket once a session reaches this age.
+config :proxy, session_max_duration_ms: 35 * 60 * 1000
+
 # Configure the endpoint
 config :proxy, ProxyWeb.Endpoint,
   url: [host: "localhost"],

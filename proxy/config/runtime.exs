@@ -22,6 +22,30 @@ end
 
 config :proxy, ProxyWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# API keys: required in prod, permissive defaults elsewhere so local
+# development and tests work out of the box.
+if config_env() == :prod do
+  config :proxy,
+    voxon_master_api_key:
+      System.get_env("VOXON_MASTER_API_KEY") ||
+        raise("""
+        environment variable VOXON_MASTER_API_KEY is missing.
+        This is the secret your application backend presents to POST /v0/init
+        to mint ephemeral client tokens. Generate a strong random value, e.g.:
+        openssl rand -base64 32
+        """),
+    mistral_api_key:
+      System.get_env("MISTRAL_API_KEY") ||
+        raise("""
+        environment variable MISTRAL_API_KEY is missing.
+        It is required to open upstream connections to Mistral's realtime API.
+        """)
+else
+  config :proxy,
+    voxon_master_api_key: System.get_env("VOXON_MASTER_API_KEY", "default_local_secret"),
+    mistral_api_key: System.get_env("MISTRAL_API_KEY", "mock_key_for_now")
+end
+
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

@@ -34,7 +34,11 @@ Always run `mix precommit` before considering work done.
 
 ## Environment
 
-- `MISTRAL_API_KEY` env var required for upstream Mistral connections.
+- API keys are read from app config (`:proxy, :mistral_api_key` / `:proxy, :voxon_master_api_key`), set in `config/runtime.exs`: required in prod (boot fails without them), env-var override with permissive defaults in dev/test.
+- `MISTRAL_API_KEY` env var required for real upstream Mistral connections.
+- `VOXON_MASTER_API_KEY` is the secret backends present to `POST /v0/init`; dev default is `default_local_secret`.
+- Ephemeral session tokens are signed/verified by `ProxyWeb.SessionToken` (60s expiry, checked at WebSocket connect only).
+- Sessions are hard-capped via `:proxy, :session_max_duration_ms` (default 35 min).
 - Port defaults to 4000 (dev), 4002 (test). Set via `PORT` env var in prod.
 
 ## Key dependencies

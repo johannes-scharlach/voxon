@@ -1,26 +1,25 @@
 defmodule ProxyWeb.InitController do
   use ProxyWeb, :controller
 
-  @salt "voxon-ephemeral-session-salt"
+  alias ProxyWeb.SessionToken
 
+  @doc """
+  Exchanges the master API key (server-to-server) for a short-lived client
+  token and the WebSocket URL the browser should connect to.
+  """
   def create(conn, _params) do
-    # 1. Fetch the master key from environment variables
-    master_key = System.get_env("VOXON_MASTER_API_KEY") || "default_local_secret"
+    master_key = Application.fetch_env!(:proxy, :voxon_master_api_key)
 
-    # 2. Extract the Authorization header
-    case get_req_header(conn, "authorization") do
-      ["Bearer " <> ^master_key] ->
-        # Authorized! Generate the short-lived client token
-        token = Phoenix.Token.sign(ProxyWeb.Endpoint, @salt, %{authenticated: true})
+    with ["Bearer " <> presented_key] <- get_req_header(conn, "authorization"),
+         true <- Plug.Crypto.secure_compare(presented_key, master_key) do
+      websocket_url =
+        ProxyWeb.Endpoint.url()
+        |> String.replace(~r/^http/, "ws")
+        |> Kernel.<>("/stream/websocket")
 
-        # Determine the WebSocket URL using the application's configured Endpoint URL
-        base_url = ProxyWeb.Endpoint.url()
-        websocket_url = String.replace(base_url, ~r/^http/, "ws") <> "/stream/websocket"
-
-        json(conn, %{token: token, websocket_url: websocket_url})
-
+      json(conn, %{token: SessionToken.sign(), websocket_url: websocket_url})
+    else
       _ ->
-        # Unauthorized
         conn
         |> put_status(:unauthorized)
         |> json(%{error: "Invalid or missing Voxon Master API Key"})
