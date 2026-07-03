@@ -8,7 +8,9 @@ export interface CreateSessionOptions {
   signal?: AbortSignal;
 }
 
-export type CreateSession = (opts?: CreateSessionOptions) => Promise<VoiceSession>;
+export type CreateSession = (
+  opts?: CreateSessionOptions,
+) => Promise<VoiceSession>;
 
 // ── Voice recorder ────────────────────────────────────────────────────
 

@@ -1,4 +1,8 @@
-import type { CreateSession, CreateSessionOptions, VoiceSession } from "./types";
+import type {
+  CreateSession,
+  CreateSessionOptions,
+  VoiceSession,
+} from "./types";
 
 export interface CreateVoxonSessionFactoryOptions {
   /** URL of your session-init endpoint.

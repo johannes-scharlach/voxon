@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  UseVoiceRecorderOptions,
-  UseVoiceRecorderResult,
-} from "./types";
+import type { UseVoiceRecorderOptions, UseVoiceRecorderResult } from "./types";
 import { WORKLET_SOURCE } from "./worklet-source";
 
 const DEFAULT_SAMPLE_RATE = 16000;
@@ -54,36 +51,33 @@ export function useVoiceRecorder({
     createSessionRef.current = createSession;
   }, [onComplete, onTranscriptUpdate, onRecordingStart, createSession]);
 
-  const finalizeRecording = useCallback(
-    (finalTranscript?: string) => {
-      if (finalizedRef.current) return;
-      finalizedRef.current = true;
-      finalizingRef.current = false;
-      setIsFinalizing(false);
+  const finalizeRecording = useCallback((finalTranscript?: string) => {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
+    finalizingRef.current = false;
+    setIsFinalizing(false);
 
-      if (finalizeTimerRef.current) {
-        clearTimeout(finalizeTimerRef.current);
-        finalizeTimerRef.current = null;
+    if (finalizeTimerRef.current) {
+      clearTimeout(finalizeTimerRef.current);
+      finalizeTimerRef.current = null;
+    }
+
+    if (wsRef.current) {
+      wsRef.current.onmessage = null;
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      if (
+        wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING
+      ) {
+        wsRef.current.close();
       }
+      wsRef.current = null;
+    }
 
-      if (wsRef.current) {
-        wsRef.current.onmessage = null;
-        wsRef.current.onclose = null;
-        wsRef.current.onerror = null;
-        if (
-          wsRef.current.readyState === WebSocket.OPEN ||
-          wsRef.current.readyState === WebSocket.CONNECTING
-        ) {
-          wsRef.current.close();
-        }
-        wsRef.current = null;
-      }
-
-      const transcript = finalTranscript ?? transcriptRef.current;
-      onCompleteRef.current?.(transcript);
-    },
-    [],
-  );
+    const transcript = finalTranscript ?? transcriptRef.current;
+    onCompleteRef.current?.(transcript);
+  }, []);
 
   const stopCapture = useCallback(() => {
     if (finalizingRef.current || finalizedRef.current) return;
