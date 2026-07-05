@@ -1,0 +1,58 @@
+name: CI (proxy)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "proxy/**"
+      - ".github/workflows/proxy.yml"
+  pull_request:
+    paths:
+      - "proxy/**"
+      - ".github/workflows/proxy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-proxy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  precommit:
+    name: mix precommit (compile / credo / sobelow / dialyzer / test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: proxy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.x"
+          elixir-version: "1.20.x"
+
+      - name: Restore deps & build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            proxy/deps
+            proxy/_build
+          key: proxy-deps-${{ runner.os }}-${{ hashFiles('proxy/mix.lock') }}
+          restore-keys: proxy-deps-${{ runner.os }}-
+
+      - name: Install deps
+        run: mix deps.get
+
+      - name: mix precommit
+        run: mix precommit
+
+      - name: Save deps & build cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            proxy/deps
+            proxy/_build
+          key: proxy-deps-${{ runner.os }}-${{ hashFiles('proxy/mix.lock') }}

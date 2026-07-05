@@ -61,17 +61,39 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
+  # PHX_SCHEME / URL_PORT control the public URL voxon advertises in
+  # /v0/init's websocket_url (http => ws, https => wss). Defaults suit a
+  # TLS-terminating host like Fly; override for reverse proxies on other
+  # ports or plain-HTTP local setups (e.g. the docker compose demo).
+  url_scheme = System.get_env("PHX_SCHEME") || "https"
+
+  url_port =
+    String.to_integer(
+      System.get_env("URL_PORT") || if(url_scheme == "https", do: "443", else: "80")
+    )
+
+  # BIND_IP controls the listen address. The default "::" (all IPv6
+  # interfaces) suits Fly's IPv6 private network; the listener is
+  # v6-only, so IPv4-only networks (e.g. a default docker compose
+  # bridge) must set BIND_IP=0.0.0.0.
+  bind_ip =
+    case System.get_env("BIND_IP", "::") |> String.to_charlist() |> :inet.parse_address() do
+      {:ok, ip} -> ip
+      {:error, _} -> raise "environment variable BIND_IP must be a valid IP address"
+    end
+
+  # Hosts that skip the force_ssl HTTPS redirect (comma-separated). The
+  # docker compose demo adds "proxy", its internal hostname.
+  config :proxy,
+    ssl_exclude_hosts:
+      System.get_env("SSL_EXCLUDE_HOSTS", "localhost,127.0.0.1")
+      |> String.split(",", trim: true)
+
   config :proxy, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :proxy, ProxyWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    url: [host: host, port: url_port, scheme: url_scheme],
+    http: [ip: bind_ip],
     secret_key_base: secret_key_base
 
   # ## SSL Support

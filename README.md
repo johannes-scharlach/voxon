@@ -12,7 +12,7 @@ Adding a real-time mic button to your app currently means solving three unrelate
 
 - **Key security.** Most realtime transcription providers have no client-safe ephemeral token mechanism. Shipping your master API key to the browser is not an option.
 - **Stateful streaming.** Proxying a long-lived, bidirectional binary stream through a typical REST/serverless backend is awkward and expensive. WebSockets want a runtime built for hundreds of thousands of cheap, isolated, long-lived connections — which is exactly what the BEAM is.
-- **Audio plumbing.** Browsers record Opus in WebM/Ogg containers; realtime models want raw 16-bit linear PCM at fixed sample rates. The conversion belongs on the client, and the included demo client shows how.
+- **Audio plumbing.** Browsers record Opus in WebM/Ogg containers; realtime models want raw 16-bit linear PCM at fixed sample rates. The conversion belongs on the client, and the `@voxon/voice-input` hooks handle it in an AudioWorklet.
 
 voxon is the piece in the middle: your backend exchanges a master key for an ephemeral token, your browser connects straight to voxon with that token, and voxon maintains the authenticated upstream connection to the provider.
 
@@ -32,6 +32,18 @@ Inside the proxy, every session is two isolated processes — one facing the bro
 
 ## Quickstart
 
+### Try the demo (Docker, one command)
+
+Requirements: Docker, a [Mistral API key](https://console.mistral.ai).
+
+```sh
+MISTRAL_API_KEY=your-mistral-key docker compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000) and click the mic. That's the whole stack: the proxy, a React demo app built from `@voxon/voice-input` and the registry components, and a minimal Node backend playing the role of *your* application backend. Your key stays in server-side env — it never reaches the browser.
+
+### Run the proxy directly
+
 Requirements: Elixir ≥ 1.15, a Mistral API key.
 
 ```sh
@@ -50,17 +62,17 @@ curl -X POST http://localhost:4000/v0/init \
 
 Connect a WebSocket to `websocket_url` with `?token=<token>` appended and start streaming audio frames.
 
-### Run the demo client
+### Run the demo client without Docker
 
-`client/` contains a dependency-free browser demo (mic capture, Float32 → 16-bit PCM conversion, streaming) plus a minimal Node backend that plays the role of *your* application backend:
+`client/` is a small Vite + React app wired up exactly the way a consumer wires voxon: the [`@voxon/voice-input`](packages/voice-input/) hooks plus the three [registry components](registry/), and a dependency-free Node `server.js` that holds the master key and mints session tokens (the role your backend plays in production). With the proxy from the previous step running:
 
 ```sh
 cd client
-node server.js          # token-exchange backend on :3000
-npx serve .             # or open index.html any other way
+npm install && npm run build
+npm start               # serves the app + token exchange on :3000
 ```
 
-Click the mic button and talk.
+For hacking on the demo, run `node server.js` and `npm run dev` side by side — Vite proxies `/api` to the Node backend.
 
 ### React client SDK
 
@@ -85,7 +97,7 @@ See [`packages/voice-input/`](packages/voice-input/) for full API docs.
 `registry/` contains copy-paste UI components for the hooks — mic button, transcript field, send button. Add them with the shadcn CLI:
 
 ```sh
-npx shadcn@latest add https://raw.githubusercontent.com/johannes/voxon/main/registry.json
+npx shadcn@latest add https://raw.githubusercontent.com/johannes-scharlach/voxon/main/registry.json
 ```
 
 See [`registry/README.md`](registry/README.md) for the full example.
@@ -131,7 +143,7 @@ One voxon-specific event exists beyond the Mistral passthrough:
 ## Operational limits
 
 - **35-minute hard wall.** Sessions are closed after 35 minutes (configurable via `:session_max_duration_ms`). Realtime speech context degrades long before that, and the cap protects you from runaway provider bills on abandoned tabs.
-- **Client-side transcoding.** The proxy does not transcode audio. Downsampling and Float32 → Int16 conversion happen in the browser (see `client/script.js`), keeping the proxy CPU-light.
+- **Client-side transcoding.** The proxy does not transcode audio. Downsampling and Float32 → Int16 conversion happen in the browser inside an AudioWorklet (see `packages/voice-input/src/worklet-source.ts`), keeping the proxy CPU-light.
 
 ## Deploying
 
@@ -143,6 +155,12 @@ The repo ships with a `Dockerfile` and `fly.toml` (WebSocket-aware concurrency l
 | `VOXON_MASTER_API_KEY` | The secret your backend presents to `/v0/init`. Generate with `openssl rand -base64 32`. |
 | `MISTRAL_API_KEY` | Upstream provider key. |
 | `PHX_HOST` | Public hostname, used to build the returned `websocket_url`. |
+
+Optional:
+
+- `PHX_SCHEME` (default `https`) and `URL_PORT` (default `443`/`80` by scheme) control the advertised URL when voxon sits behind a reverse proxy on a non-standard port or serves plain `ws://` (as the docker compose demo does).
+- `BIND_IP` (default `::`, all IPv6 interfaces — right for Fly). The listener is IPv6-only by default; set `0.0.0.0` on IPv4-only networks such as a docker compose bridge.
+- `SSL_EXCLUDE_HOSTS` (default `localhost,127.0.0.1`) — hosts exempt from the HTTPS redirect, for plain-HTTP internal hops.
 
 ```sh
 cd proxy

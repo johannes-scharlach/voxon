@@ -1,0 +1,60 @@
+name: CI (packages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".changeset/config.json"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".changeset/config.json"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-packages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint (biome)
+        run: npm run -w @voxon/voice-input lint
+
+      - name: Typecheck (tsc)
+        run: npm run -w @voxon/voice-input typecheck
+
+      - name: Test (vitest)
+        run: npm run -w @voxon/voice-input test
+
+      - name: Build (tsc -> dist)
+        run: npm run -w @voxon/voice-input build
+
+      - name: Verify changeset present on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -z "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md)" ]; then
+            echo "::warning::No changeset found in .changeset/. Run 'npm run changeset' and commit the resulting file if this PR should trigger a release."
+          fi

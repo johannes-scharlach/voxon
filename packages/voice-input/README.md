@@ -1,6 +1,6 @@
 # @voxon/voice-input
 
-React hooks for real-time voice transcription with [Voxon](https://github.com/johannes/voxon) + Mistral Voxtral. Streaming audio capture, two-phase stop, and a prompt input controller for the live-transcript UX.
+React hooks for real-time voice transcription with [Voxon](https://github.com/johannes-scharlach/voxon) + Mistral Voxtral. Streaming audio capture, two-phase stop, and a prompt input controller for the live-transcript UX.
 
 ## Install
 

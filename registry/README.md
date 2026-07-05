@@ -5,13 +5,13 @@ shadcn/ui-style copy-paste components for the `@voxon/voice-input` hooks. These 
 ## Adding components
 
 ```sh
-npx shadcn@latest add https://raw.githubusercontent.com/johannes/voxon/main/registry.json
+npx shadcn@latest add https://raw.githubusercontent.com/johannes-scharlach/voxon/main/registry.json
 ```
 
 This installs all three components into `components/ui/`. To add just one:
 
 ```sh
-npx shadcn@latest add https://raw.githubusercontent.com/johannes/voxon/main/registry.json --item voice-mic-button
+npx shadcn@latest add https://raw.githubusercontent.com/johannes-scharlach/voxon/main/registry.json --item voice-mic-button
 ```
 
 ## Components

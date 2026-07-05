@@ -4,7 +4,7 @@
     "@changesets/changelog-github",
     { "repo": "johannes-scharlach/voxon" }
   ],
-  "commit": "feat, fix, chore, docs, refactor, build, ci, test, perf, style",
+  "commit": false,
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

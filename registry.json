@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "voxon",
-  "homepage": "https://github.com/johannes/voxon",
+  "homepage": "https://github.com/johannes-scharlach/voxon",
   "items": [
     {
       "name": "voice-mic-button",

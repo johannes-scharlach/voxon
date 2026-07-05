@@ -1,0 +1,40 @@
+# One-command local demo:
+#
+#   MISTRAL_API_KEY=your-key docker compose up --build
+#
+# then open http://localhost:3000 and click the mic.
+#
+# The secrets below are fixed, local-only demo values. Never reuse them in
+# a real deployment — see README "Deploying" for production setup.
+
+services:
+  proxy:
+    build: ./proxy
+    ports:
+      - "4000:4000"
+    environment:
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:?Set MISTRAL_API_KEY (get one at https://console.mistral.ai)}
+      VOXON_MASTER_API_KEY: local-demo-secret
+      SECRET_KEY_BASE: local-demo-only-secret-key-base-0000000000000000000000000000000000
+      # Advertise ws://localhost:4000 in /v0/init responses so the browser
+      # (outside the compose network) can connect.
+      PHX_HOST: localhost
+      PHX_SCHEME: http
+      URL_PORT: "4000"
+      # The compose bridge network is IPv4; the default bind is IPv6-only.
+      BIND_IP: 0.0.0.0
+      # Let the demo backend reach the proxy over plain http on the
+      # internal network without a force_ssl redirect.
+      SSL_EXCLUDE_HOSTS: localhost,127.0.0.1,proxy
+
+  demo:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      VOXON_URL: http://proxy:4000
+      VOXON_MASTER_API_KEY: local-demo-secret
+    depends_on:
+      - proxy

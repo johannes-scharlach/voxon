@@ -5,13 +5,13 @@ Open-source WebSocket proxy in Elixir/Phoenix that normalizes real-time AI trans
 ## Repository layout
 
 ```
-client/              Standalone browser client (vanilla HTML/JS) — mic capture, PCM conversion, WebSocket send
+client/              Demo app — Vite + React + Tailwind v4, uses @voxon/voice-input (file: dep) + copies of the registry components (src/components/ui/); server.js serves dist/ + /api/session-init
 packages/voice-input/ @voxon/voice-input — React hooks (useVoiceRecorder + PromptInputProvider) for the mic-button-to-transcript UX
 registry/            shadcn-style copy-paste UI components (voice-mic-button, voice-transcript-field, voice-send-button)
 proxy/               Elixir/Phoenix app (:proxy) — the proxy engine
 ```
 
-The `client/`, `packages/voice-input/`, `registry/`, and `proxy/` directories are independent; the client is not served by Phoenix.
+The `client/`, `packages/voice-input/`, `registry/`, and `proxy/` directories are independent; the client is not served by Phoenix. Root `docker-compose.yml` runs proxy + demo together (`MISTRAL_API_KEY=... docker compose up --build`). The registry components in `client/src/components/ui/` are copies of `registry/*.tsx` — keep them in sync when editing either side.
 
 ### `packages/voice-input/`
 

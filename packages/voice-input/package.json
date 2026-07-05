@@ -11,9 +11,15 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johannes-scharlach/voxon.git",
+    "directory": "packages/voice-input"
+  },
+  "homepage": "https://github.com/johannes-scharlach/voxon#readme",
+  "bugs": "https://github.com/johannes-scharlach/voxon/issues",
   "scripts": {
     "build": "tsc",
     "lint": "biome check",
@@ -23,8 +29,13 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "@types/react": "^19.2.17",
-    "react": "^19.2.7"
+    "@types/react": ">=18",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
   },
   "keywords": [
     "voxon",
